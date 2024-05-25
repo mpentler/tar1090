@@ -1697,6 +1697,19 @@ jQuery('#selected_altitude_geom1')
         useRouteAPI = false;
     }
 
+    new Toggle({
+        key: "airlineBanners",
+        display: "Airline Logo Banners",
+        container: "#settingsLeft",
+        init: true,
+        setState: function(state) {
+            airlineBanners = state;
+            console.log("Airline banners toggled");
+            if (state) {
+                setAirlineBannerVis();
+            }
+        }
+    });
 
     new Toggle({
         key: "enableInfoblock",
@@ -1768,7 +1781,7 @@ jQuery('#selected_altitude_geom1')
 
         // activate to prevent iframe use
         if (inhibitIframe && window.self != window.top) {
-            window.top.location.href = "https://www.aggregator.com/";
+            window.top.location.href = "https://www.oarc.uk/";
             return;
         }
     }
@@ -8948,6 +8961,14 @@ function setPictureVisibility() {
     }
 }
 
+function setAirlineBannerVis() {
+  if (airlineBanners) {
+    jQuery('#logo_banner').removeClass('hidden');
+  } else {
+    jQuery('#logo_banner').addClass('hidden');
+  }
+}
+
 // just an idea, unused
 let infoBits = {
     type: {
@@ -9128,6 +9149,7 @@ function adjust_baro_alt(alt) {
 }
 
 function globeRateUpdate() {
+<<<<<<< HEAD
     if (aggregator) {
         dynGlobeRate = true;
         if (0) {
@@ -9136,6 +9158,14 @@ function globeRateUpdate() {
             if (!cookieExp || cookieExp < ts + 3600*1000)
                 setCookie('adsbx_sid', ((ts + 2*86400*1000) + '_' + Math.random().toString(36).substring(2, 15)), 2);
         }
+=======
+    if (adsbexchange) {
+        //dynGlobeRate = true;
+        const cookieExp = getCookie('adsbx_sid').split('_')[0];
+        const ts = new Date().getTime();
+        if (!cookieExp || cookieExp < ts + 3600*1000)
+            setCookie('adsbx_sid', ((ts + 2*86400*1000) + '_' + Math.random().toString(36).substring(2, 15)), 2);
+>>>>>>> fc258ba (Trying again, ugh)
     }
     if (dynGlobeRate) {
         return jQuery.ajax({url:'/globeRates.json', cache: false, dataType: 'json', }).done(function(data) {
