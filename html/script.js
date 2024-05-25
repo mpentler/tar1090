@@ -1697,6 +1697,19 @@ jQuery('#selected_altitude_geom1')
         useRouteAPI = false;
     }
 
+    new Toggle({
+        key: "airlineBanners",
+        display: "Airline Logo Banners",
+        container: "#settingsLeft",
+        init: true,
+        setState: function(state) {
+            airlineBanners = state;
+            console.log("Airline banners toggled");
+            if (state) {
+                setAirlineBannerVis();
+            }
+        }
+    });
 
     new Toggle({
         key: "enableInfoblock",
@@ -1768,7 +1781,7 @@ jQuery('#selected_altitude_geom1')
 
         // activate to prevent iframe use
         if (inhibitIframe && window.self != window.top) {
-            window.top.location.href = "https://www.aggregator.com/";
+            window.top.location.href = "https://www.oarc.uk/";
             return;
         }
     }
@@ -8948,6 +8961,14 @@ function setPictureVisibility() {
     }
 }
 
+function setAirlineBannerVis() {
+  if (airlineBanners) {
+    jQuery('#logo_banner').removeClass('hidden');
+  } else {
+    jQuery('#logo_banner').addClass('hidden');
+  }
+}
+
 // just an idea, unused
 let infoBits = {
     type: {
@@ -9129,7 +9150,7 @@ function adjust_baro_alt(alt) {
 
 function globeRateUpdate() {
     if (aggregator) {
-        dynGlobeRate = true;
+        //dynGlobeRate = true;
         if (0) {
             const cookieExp = getCookie('asdf_id').split('_')[0];
             const ts = new Date().getTime();

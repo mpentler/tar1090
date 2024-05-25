@@ -22,7 +22,7 @@
 // degrees.
 
 // The google maps zoom level, 0 - 16, lower is further out
-//DefaultZoomLvl   = 7;
+DefaultZoomLvl   = 5;
 
 // specify lat lon that the 'auto-select plane' feature will choose the closest plane to
 // autoselectCoords = [42, 21];
@@ -204,7 +204,7 @@ ColorByAlt = {
 //SiteCirclesLineDash = [5, 5]; // null - solid line, [5, 5] - dashed line with 5 pixel lines and spaces in between
 
 // Controls page title, righthand pane when nothing is selected
-//PageName = "tar1090";
+PageName = "OARC Members ADS-B map";
 
 // Show country flags by ICAO addresses?
 //ShowFlags = true;
@@ -268,6 +268,7 @@ MapboxAPIKey = null;
 //shareBaseUrl = 'https://globe.adsb.fi/';
 //shareBaseUrl = 'https://globe.airplanes.live/';
 //shareBaseUrl = 'https://globe.adsbexchange.com/';
+shareBaseUrl = 'https://adsb.oarc.uk/';
 // planespottersLinks = false;
 
 // show links to various registration websites (not all countries)
@@ -331,13 +332,14 @@ HideCols = [
 // planespottingAPI = true;
 
 // get flight route from routeApi service default setting (toggle via settings checkbox)
-// useRouteAPI = false;
+useRouteAPI = true;
 // configure route display, possible values: iata, icao, city (can use multiple like this: iata+city)
 // routeDisplay = 'iata';
 // which routeApi service to use
 // routeApiUrl = "https://adsb.im/api/0/routeset";
 // routeApiUrl = "https://api.adsb.lol/api/0/routeset";
 // routeApiUrl = ""; // to disable route API so it can't be enabled by a website visitor
+routeApiUrl = "https://api.adsb.lol/api/0/routeset";
 
 // show a link to jetphotos, only works if planespottersAPI is disabled
 // jetphotoLinks = false;
@@ -363,7 +365,7 @@ HideCols = [
 //enableDWD = true;
 
 // Display only the last leg of a flight in globeIndex mode.
-//lastLeg = true;
+lastLeg = true;
 //
 //hideButtons = false;
 //
