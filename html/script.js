@@ -3490,7 +3490,7 @@ function refreshSelected() {
 
     refreshPhoto(selected);
 
-    jQuery('#selected_callsign').updateText(selected.name);#
+    jQuery('#selected_callsign').updateText(selected.name);
 
     //Logo stuff here
 
