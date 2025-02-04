@@ -498,4 +498,4 @@ else
 fi
 
 # OARC changes
-cp -r /home/mark/airline-logo-scraper/avcodes_banners/ /usr/local/share/tar1090/html
+cp -r /home/mark/airline-logo-scraper/avcodes_banners/ /usr/local/share/tar1090/html-webroot
