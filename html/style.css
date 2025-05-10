@@ -944,3 +944,7 @@ input{
     background-color: var(--ACCENT);
     z-index: 9;
 }
+
+.navbar {
+    --bs-navbar-padding-y: 0rem;
+}
