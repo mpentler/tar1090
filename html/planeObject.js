@@ -361,7 +361,7 @@ PlaneObject.prototype.updateTrackPrev = function() {
     this.prev_time = this.position_time;
     this.prev_track = this.track;
     this.prev_rot = this.rotation;
-    this.prev_true = this.true_head;
+    this.prev_true = this.true_heading;
     this.prev_alt = this.altitude;
     this.prev_alt_rounded = this.alt_rounded;
     this.prev_alt_geom = this.alt_geom;
@@ -507,7 +507,7 @@ PlaneObject.prototype.updateTrack = function(now, last, serverTrack, stale) {
     if (on_ground)
         stale_timeout = 30;
 
-    if (pTracks) {
+    if (pTracks && !serverTrack) {
         stale = false;
         stale_timeout = 120;
         if (this.dataSource == "adsc")
@@ -544,7 +544,7 @@ PlaneObject.prototype.updateTrack = function(now, last, serverTrack, stale) {
     let since_update = this.prev_time - this.tail_update;
     let distance_traveled = ol.sphere.getDistance(this.tail_position, this.prev_position);
 
-    if (pTracks && since_update < pTracksInterval) {
+    if (pTracks && since_update < pTracksInterval && !serverTrack) {
         return this.updateTrackPrev();
     }
 
@@ -586,12 +586,15 @@ PlaneObject.prototype.updateTrack = function(now, last, serverTrack, stale) {
             lastseg.fixed.appendCoordinate(projPrev);
         }
 
+        let estimatedFill = false;
+
         // draw great circle path for long distances
         if (distance > 30000
             && !(elapsed > 3600 && distance / elapsed * 3.6 < 100) && !modeS
             // don't draw a line if a long time has elapsed but no great distance was traveled
         ) {
-            if (!pTracks) {
+            estimatedFill = true;
+            if (!(pTracks && !serverTrack)) {
                 estimated = true;
             }
             let nPoints = distance / 19000;
@@ -620,6 +623,7 @@ PlaneObject.prototype.updateTrack = function(now, last, serverTrack, stale) {
             this.track_linesegs.push({ fixed: new ol.geom.LineString(points),
                 feature: null,
                 estimated: estimated,
+                estimatedFill: estimatedFill,
                 ground: (this.prev_alt == "ground"),
                 altitude: this.prev_alt_rounded,
                 alt_real: this.prev_alt,
@@ -737,7 +741,7 @@ PlaneObject.prototype.getMarkerColor = function(options) {
         l += ColorByAlt.mlat.l;
     }
 
-    if (uk_advisory && (this.squawk == '7700' || this.squawk == '7600' || this.squawk == '7500')) {
+    if (atcStyle && (this.squawk == '7700' || this.squawk == '7600' || this.squawk == '7500')) {
         h = 0;
         s = 100;
         l = 40;
@@ -857,8 +861,13 @@ PlaneObject.prototype.updateIcon = function() {
             callsign =  'reg: ' + this.registration;
         else
             callsign =   'hex: ' + this.icao;
-        if ((useRouteAPI || this.dataSource == "ais") && this.routeString)
-            callsign += ' - ' + this.routeString;
+        if ((useRouteAPI || this.dataSource == "ais") && this.routeString) {
+            if (0 && g.extendedLabels) {
+                callsign += ' - ' + this.routeString;
+            } else {
+                callsign += '\n' + this.routeString;
+            }
+        }
 
         const unknown = NBSP+NBSP+"?"+NBSP+NBSP;
 
@@ -872,7 +881,7 @@ PlaneObject.prototype.updateIcon = function() {
         let speedString = (this.speed == null) ? (NBSP+'?'+NBSP) : format_speed_brief(this.speed, DisplayUnits, showLabelUnits).padStart(3, NBSP);
 
         labelText = "";
-        if (uk_advisory) {
+        if (atcStyle) {
             labelText += callsign + '\n';
             labelText += altString + '\n';
             labelText += 'x' + this.squawk;
@@ -920,7 +929,7 @@ PlaneObject.prototype.updateIcon = function() {
                 labelText += speedString + NBSP + NNBSP + altString.padStart(6, NBSP) + '\n';
             }
         }
-        if (g.extendedLabels < 3 && !uk_advisory) {
+        if (g.extendedLabels < 3 && !atcStyle) {
             labelText += callsign;
         }
     }
@@ -1149,7 +1158,6 @@ PlaneObject.prototype.processTrace = function() {
             _now = timestamp;
 
             if (traceOpts.showTime && timestamp > traceOpts.showTime) {
-                traceOpts.showTimeEnd = timestamp;
                 if (traceOpts.replaySpeed > 0) {
                     clearTimeout(traceOpts.showTimeout);
                     traceOpts.animateRealtime = (timestamp - traceOpts.showTime) * 1000;
@@ -1161,9 +1169,12 @@ PlaneObject.prototype.processTrace = function() {
                     traceOpts.animateStepTime = traceOpts.animateRealtime / traceOpts.replaySpeed / traceOpts.animateSteps;
 
                     if (traceOpts.animateSteps < 2) {
-                        traceOpts.showTimeout = setTimeout(gotoTime, traceOpts.animateTime);
                         traceOpts.animate = false;
+                        //console.log(`animateTime: ${traceOpts.animateTime}`);
+                        traceOpts.showTime = timestamp;
+                        traceOpts.showTimeout = setTimeout(gotoTime, traceOpts.animateTime);
                     } else {
+                        traceOpts.showTimeEnd = timestamp;
                         //console.timeEnd('step');
                         //console.time('step');
                         //console.log(traceOpts.animateTime);
@@ -1542,12 +1553,7 @@ PlaneObject.prototype.updateData = function(now, last, data, init) {
     }
 
     if (data.rssi != null && data.rssi > -49.4) {
-        if (!globeIndex && this.rssi != null && RefreshInterval < 1500) {
-            let factor = Math.min(1, Math.log(2 - RefreshInterval / 1500));
-            this.rssi = this.rssi * (1 - factor) + data.rssi * factor;
-        } else {
-            this.rssi = data.rssi;
-        }
+        this.rssi = data.rssi;
     } else {
         this.rssi = null;
     }
@@ -1804,7 +1810,7 @@ function altitudeLines (segment) {
         color = monochromeTracks;
 
     const modeS = (segment.dataSource == 'modeS');
-    const lineKey = color + '_' + debugTracks + '_' + noVanish + '_' + segment.estimated + '_' + newWidth + '_' + modeS;
+    const lineKey = '_' + color + debugTracks + noVanish + segment.estimated + newWidth + modeS + segment.noLabel + segment.estimatedFill;
 
     if (lineStyleCache[lineKey])
         return lineStyleCache[lineKey];
@@ -1866,40 +1872,27 @@ function altitudeLines (segment) {
             });
         }
     } else {
-        if (segment.noLabel || segment.estimated) {
-            lineStyleCache[lineKey] = [
-                new ol.style.Style({
-                    stroke: new ol.style.Stroke({
-                        color: color,
-                        width: 1 * newWidth * multiplier,
-                        lineJoin: join,
-                        lineCap: cap,
+        lineStyleCache[lineKey] = [
+            new ol.style.Style({
+                image: new ol.style.Circle({
+                    radius: (segment.estimatedFill ? 0 : 2) * newWidth,
+                    fill: new ol.style.Fill({
+                        color: color
                     })
                 }),
-            ];
-        } else {
-            lineStyleCache[lineKey] = [
-                new ol.style.Style({
-                    image: new ol.style.Circle({
-                        radius: 2 * newWidth,
-                        fill: new ol.style.Fill({
-                            color: color
-                        })
-                    }),
-                    geometry: function(feature) {
-                        return new ol.geom.MultiPoint(feature.getGeometry().getCoordinates());
-                    }
-                }),
-                new ol.style.Style({
-                    stroke: new ol.style.Stroke({
-                        color: color,
-                        width: 1 * newWidth * multiplier,
-                        lineJoin: join,
-                        lineCap: cap,
-                    })
+                geometry: function(feature) {
+                    return new ol.geom.MultiPoint(feature.getGeometry().getCoordinates());
+                }
+            }),
+            new ol.style.Style({
+                stroke: new ol.style.Stroke({
+                    color: color,
+                    width: ((segment.noLabel || segment.estimated) ? 0.5 : 1) * newWidth * multiplier,
+                    lineJoin: join,
+                    lineCap: cap,
                 })
-            ];
-        }
+            })
+        ];
     }
     return lineStyleCache[lineKey];
 }
@@ -1993,6 +1986,9 @@ PlaneObject.prototype.updateLines = function() {
             const historic = (showTrace || replay);
             const useLocal = ((historic && !utcTimesHistoric) || (!historic && !utcTimesLive));
             const date = new Date(seg.ts * 1000);
+            if (!date) {
+                console.log(seg);
+            }
             let refDate = showTrace ? traceDate : new Date();
             if (replay) { refDate = replay.ts };
             if (useLocal && historic) {
@@ -2751,6 +2747,7 @@ PlaneObject.prototype.checkVisible = function() {
     let timeout = seenTimeout;
     if (this.dataSource == "mlat") { timeout = seenTimeoutMlat; }
     else if (this.dataSource == "adsc") { timeout = jaeroTimeout; }
+    else if (this.dataSource == 'ais') { timeout = aisTimeout; }
 
     timeout += modeSTime - tisbReduction + refresh;
 
@@ -2933,25 +2930,49 @@ function routeDoLookup(currentTime) {
                     console.log(`${currentTime}: got routes:`, routes);
                 }
                 for (var route of routes) {
-                    // let's log just a little bit of what's happening
-                    if (debugRoute) {
-                        var logText = `result for ${route.callsign}: `;
-                        if (route._airport_codes_iata == 'unknown') {
-                            logText += 'unknown to the API server';
-                        } else if (route.plausible == false) {
-                            logText += `${route._airport_codes_iata} considered implausible`;
-                        } else {
-                            logText += `adding ${route._airport_codes_iata}`;
-                        }
-                        //console.log(logText);
+                    if (!route) {
+                        console.error(`Route API returned this invalid element in the array ${route}`);
+                        console.log(routes);
+                        continue;
                     }
-                    if (route.airport_codes != 'unknown') {
-                        if (route.plausible == true) {
-                            g.route_cache[route.callsign] = route._airport_codes_iata;
-                        } else {
-                            g.route_cache[route.callsign] = `?? ${route._airport_codes_iata}`;
-                        }
+                    if (!route.airport_codes || route.airport_codes == "unknown") {
+                        continue;
                     }
+                    let codes = "";
+                    let cities = "";
+
+                    for (let airport of route._airports) {
+                        if (codes) {
+                            if (routeDisplay.includes('city')) {
+                                codes += " -\n"
+                            } else {
+                                codes += " - "
+                            }
+
+                            cities += " - ";
+                        }
+                        let aString = ""
+                        for (let type of routeDisplay) {
+                            if (aString) {
+                                aString += '/';
+                            }
+                            if (type == 'iata') {
+                                aString += airport.iata;
+                            } else if (type == 'icao') {
+                                aString += airport.icao;
+                            } else if (type == 'city') {
+                                aString += airport.location;
+                            }
+                        }
+                        cities += airport.location;
+                        codes += aString;
+                    }
+
+                    if (!route.plausible) {
+                        codes = '?? ' + codes;
+                    }
+                    g.route_cache[route.callsign] = codes;
+                    g.route_cities[route.callsign] = cities;
                 }
             })
             .fail((jqxhr, status, error) => {
@@ -3007,8 +3028,13 @@ function normalizeTraceStamps(data) {
     }
     let trace = data.trace;
     let last = 0;
+    let negOffsetWarned = 0;
     for (let i = 0; i < trace.length; i++) {
         let point = trace[i];
+        if (point[0] < 0 && !negOffsetWarned) {
+            negOffsetWarned = 1;
+            console.log('negative offset in trace');
+        }
         point[0] += data.timestamp;
         if (point[0] >= last) {
             last = point[0];

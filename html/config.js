@@ -21,21 +21,13 @@
 // provided by dump1090 itself. All positions are in decimal
 // degrees.
 
-// Default center of the map.
-DefaultCenterLat = 53.89;
-DefaultCenterLon = -1.23;
 // The google maps zoom level, 0 - 16, lower is further out
-DefaultZoomLvl   = 5;
+DefaultZoomLvl   = 7;
 
 // specify lat lon that the 'auto-select plane' feature will choose the closest plane to
 // autoselectCoords = [42, 21];
 
-// Center marker. If dump1090 provides a receiver location,
-// that location is used and these settings are ignored.
-
 //SiteShow    = false;           // true to show a center marker
-//SiteLat     = 45.0;            // position of the marker
-//SiteLon     = 9.0;
 //SiteName    = "My Radar Site"; // tooltip of the marker
 
 // Update GPS location (keep map centered on GPS location)
@@ -247,7 +239,14 @@ MapboxAPIKey = null;
 //labelZoom = 8;
 //labelZoomGround = 12.5;
 
-//labelFont = 'bold 12px tahoma';
+// font family for labels, default bold, could be empty or italic as well
+// labelStyle = 'bold';
+// labelFamily = 'Tahoma, Verdana, Helvetica, sans-serif';
+// labelScale = 1;
+
+// globalScale = 1;
+// userScale = 1;
+// iconScale = 1;
 
 //displayUATasADSB = false;
 //uatNoTISB = true;
@@ -331,10 +330,15 @@ HideCols = [
 // get pictures from planespotting.be
 // planespottingAPI = true;
 
-// get flight route from routeApi service
+// get flight route from routeApi service default setting (toggle via settings checkbox)
 useRouteAPI = true;
+// configure route display, possible values: iata, icao, city (can use multiple like this: iata+city)
+routeDisplay = 'city';
 // which routeApi service to use
 routeApiUrl = "https://api.adsb.lol/api/0/routeset";
+// routeApiUrl = "https://adsb.im/api/0/routeset";
+// routeApiUrl = "https://api.adsb.lol/api/0/routeset";
+// routeApiUrl = ""; // to disable route API so it can't be enabled by a website visitor
 
 // show a link to jetphotos, only works if planespottersAPI is disabled
 // jetphotoLinks = false;
@@ -372,7 +376,8 @@ lastLeg = true;
 //darkModeDefault = true; // turn on dark mode by default (change in browser possible)
 //
 //
-//jaeroTimeout = 35 * 60; // in seconds
+jaeroTimeout = 35 * 60; // in seconds
+jaeroLabel = "HFDL ADS-C"; // relabel the ADS-C data if used for other purposes (i.e. HFDL / acars2pos)
 
 //seenTimeout = 58; // in seconds
 //seenTimeoutMlat = 58; // in seconds
@@ -384,7 +389,6 @@ lastLeg = true;
 
 // aiscatcher_server = "http://192.168.1.113:8100"; // update with your server address
 // aiscatcher_refresh = 15; // refresh interval in seconds
-// aiscatcher_test = true; // show with squares on the aircraft icon layer
 // aisTimeout = 1200;
 
 // droneJson = "";
@@ -426,3 +430,15 @@ tableColors = {
 //prefer978 = 0;
 //
 // dynGlobeRate = false; // enable use of globeRates.json in index.html directory to steer client refresh rate
+
+// !!! Please set the latitude / longitude in the decoder rather than
+// setting it here !!!
+// (graphs1090 will get the location from the decoder)
+//SiteLat     = 45.0;            // position of the marker
+//SiteLon     = 9.0;
+// Default center of the map if no Site location is set
+DefaultCenterLat = 53.89;
+DefaultCenterLon = -1.23;
+//
+
+// MergeNonIcao = false; // set to true to merge non icao hex with the icao hex (remove the ~)

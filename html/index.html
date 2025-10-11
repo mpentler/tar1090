@@ -952,8 +952,13 @@
               </tr>
 
               <tr class="infoblock_heading">
-                <td style="text-align: right" class=link>
-                  <a href="https://github.com/mpentler/tar1090#tar1090" id="tar1090_version" target="_blank">tar1090 on github</a>
+                <td style="text-align: right" class="infoBlockTitleText">
+                  <span id="webinterface_pre"></span>
+                  <span class="link"><a href="https://github.com/mpentler/tar1090#tar1090" target="_blank" id="webinterface_link">tar1090</a></span>
+                  <span id="webinterface_version"></span>
+                  <span id="decoder_pre"></span>
+                  <span class="link"><a href="" target="_blank" id="decoder_link"></a></span>
+                  <span id="decoder_version"></span>
                 </td>
               </tr>
               <tr class="rSpacer">
@@ -982,6 +987,7 @@
                           <span> <input id="altimeter_input" type="number" step="0.01" value="29.92" class="searchInput"></span>
                           <span> <button class="formButton" type="submit">Set</button></span>
                           <span> <button class="formButton" type="button" id="altimeter_set_standard">Standard</button>
+                          <span> <button class="formButton" type="button" disabled id="altimeter_set_selected">From Plane</button>
                         </form>
                       </td>
                     </tr>
@@ -1132,7 +1138,7 @@
     <script src="libs/zstddec-tar1090-0.0.5.js"></script>
 
     <!-- ol-custom bundling created using https://github.com/wiedehopf/ol-rollup-->
-    <script src="libs/ol-custom-10.4.0.js"></script>
+    <script src="libs/ol-custom-10.6.1.js"></script>
 
     <!-- JS_ANCHOR2 -->
     <script src="early.js"></script>
