@@ -784,10 +784,6 @@
             <div class="settingsOptionContainer">
               <button class="formButton" onclick="resetSettings();">Reset All Settings</button>
             </div>
-            <div class="settingsOptionContainer">
-              <div class="settingsCheckbox" id="grouptype_checkbox"></div>
-              <div class="settingsText">Group by Data Type</div>
-            </div>
           </div>
         </div>
         <div style="display: none" id="credits">
@@ -872,11 +868,12 @@
         <div id="replayBar">
           <button id="replayPlay" >Play</button>
           <p id="replayDateHint" >Date:</p>
+          <p id="replayDateHintLocal" ></p>
           <input type="text" class="datepicker" id="replayDatepicker" >
           <p id="replayTimeHint"  >Time:</p>
           <p id="hourSelect"></p>
           <p id="minuteSelect"></p>
-          <p id="replayTimeZone">UTC</p>
+          <p id="replayTimeZone">UTC Date:</p>
           <p id="replaySpeedHint">Speed:</p>
           <p id="replaySpeedSelect"></p>
           <p id="replayLoading"></p>
@@ -897,7 +894,7 @@
                 </td>
               </tr>
 
-              <tr id='adsbexchange_header' class="infoblock_row">
+              <tr id='aggregator_header' class="infoblock_row">
                 <td style="text-align: center">
 
 <nav class="navbar navbar-dark bg-dark">
@@ -944,7 +941,6 @@
                   </div>
                   <div class="rSpacer"></div>
                   <div class="rSpacer"></div>
-
                 </td>
               </tr>
               <tr id="imageConfigHeader" class="infoblock_row hidden">
@@ -956,13 +952,21 @@
               </tr>
 
               <tr class="infoblock_heading">
-                <td style="text-align: right" class=link>
-                  <a href="https://github.com/mpentler/tar1090#tar1090" id="tar1090_version" target="_blank">tar1090 on github</a>
+                <td style="text-align: right" class="infoBlockTitleText">
+                  <span id="webinterface_pre"></span>
+                  <span class="link"><a href="https://github.com/mpentler/tar1090#tar1090" target="_blank" id="webinterface_link">tar1090</a></span>
+                  <span id="webinterface_version"></span>
+                  <span id="decoder_pre"></span>
+                  <span class="link"><a href="" target="_blank" id="decoder_link"></a></span>
+                  <span id="decoder_version"></span>
                 </td>
               </tr>
               <tr class="rSpacer">
                 <td></td>
               </tr>
+              <tr><td>
+              <table style="width: 100%" id="mp3player" class="hidden"></table>
+              </td></tr>
               <tr>
                 <td>
                   <table style="width: 100%">
@@ -983,6 +987,7 @@
                           <span> <input id="altimeter_input" type="number" step="0.01" value="29.92" class="searchInput"></span>
                           <span> <button class="formButton" type="submit">Set</button></span>
                           <span> <button class="formButton" type="button" id="altimeter_set_standard">Standard</button>
+                          <span> <button class="formButton" type="button" disabled id="altimeter_set_selected">From Plane</button>
                         </form>
                       </td>
                     </tr>
@@ -1131,7 +1136,9 @@
     <script src="libs/jquery-ui-1.13.2.min.js"></script>
     <script src="libs/jquery.ui.touch-punch-1.0.8.js"></script>
     <script src="libs/zstddec-tar1090-0.0.5.js"></script>
-    <script src="libs/ol-custom024.js"></script>
+
+    <!-- ol-custom bundling created using https://github.com/wiedehopf/ol-rollup-->
+    <script src="libs/ol-custom-10.6.1.js"></script>
 
     <!-- JS_ANCHOR2 -->
     <script src="early.js"></script>

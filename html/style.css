@@ -50,7 +50,7 @@ select {
     z-index: 1;
     background-color: var(--BGCOLOR1);
 }
-.adsbx-selected-bg:before {
+.aggregator-selected-bg:before {
     content: ' ';
     position:absolute;
     display:block;
@@ -286,6 +286,12 @@ select {
     background-color: var(--ACCENT);
     color: #FFFFFF;
     cursor: pointer;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    box-shadow:
+        0 -2px 2px -1px rgba(0, 0, 0, 0.5),
+        0 2px 2px -1px rgba(0, 0, 0, 0.7);
 }
 .aircraft_table_header td {
     font-size: smaller;
@@ -309,7 +315,7 @@ select {
 
 .hidden { display: none; }
 
-.infoblock_heading a  { text-decoration: none; color: blue; font-size: x-small;}
+.infoblock_heading a  { text-decoration: none; color: blue; font-size: var(--FS2); }
 
 .dim    { opacity: 0.3; filter:alpha(opacity=30); /* For IE8 and earlier */ }
 
@@ -344,9 +350,12 @@ select {
 
 .formButton {
     font-size: var(--FS2);
-    color:var(--TXTCOLOR3);
+    color:var(--TXTCOLOR2);
     background-color: var(--BGCOLOR2);
     border-color: var(--BGCOLOR1);
+}
+.formButton:disabled {
+    color:var(--TXTCOLOR3);
 }
 
 select.error, textarea.error, input.error {
@@ -887,7 +896,7 @@ input{
   grid-template-areas:
     "timezone dateHint timeHint speedHint"
     "play datepicker hours speedSelect"
-    "loading . minutes ."
+    ". dateHintLocal minutes loading "
     ". . . .";
 }
 
@@ -918,6 +927,9 @@ input{
 }
 #replayTimeHint{
    grid-area: timeHint;
+}
+#replayDateHintLocal{
+  grid-area: dateHintLocal;
 }
 #replayDateHint{
   grid-area: dateHint;

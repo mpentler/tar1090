@@ -17,7 +17,7 @@ let loadFinished = false;
 let Dump1090Version = "unknown version";
 let RefreshInterval = 1000;
 let globeSimLoad = 6;
-let adsbexchange = true;
+let aggregator = true;
 let enable_uat = false;
 let enable_pf_data = false;
 let HistoryChunks = false;
@@ -33,6 +33,7 @@ let zstdDefer = jQuery.Deferred();
 let configureReceiver = jQuery.Deferred();
 let historyQueued = jQuery.Deferred();
 let historyTimeout = 60;
+let haveTraces = false;
 let globeIndex = 0;
 let globeIndexGrid = 0;
 let globeIndexSpecialTiles;
@@ -62,6 +63,8 @@ let calcOutlineData = null;
 let uuid = null;
 let uuidCache = [];
 
+let filterUuid = null;
+
 let inhibitFetch = false;
 let zstdDecode = null;
 
@@ -71,7 +74,15 @@ try {
     usp = {
         params: new URLSearchParams(),
         has: function(s) {return this.params.has(s.toLowerCase());},
-        get: function(s) {return this.params.get(s.toLowerCase());},
+        get: function(s) {
+            let val = this.params.get(s.toLowerCase());
+            if (val) {
+                // make XSS a bit harder
+                val = val.replace(/[<>#&]/g, '');
+                //console.log("usp.get(" + s + ") = " + val);
+            }
+            return val;
+        },
         getFloat: function(s) {
             if (!this.params.has(s.toLowerCase())) return null;
             const param =  this.params.get(s.toLowerCase());
@@ -147,8 +158,8 @@ var fakeLocalStorage = function() {
 };
 
 
-if (window.location.href.match(/adsbexchange.com/) && window.location.pathname == '/') {
-    adsbexchange = true;
+if (window.location.href.match(/aggregator.com/) && window.location.pathname == '/') {
+    aggregator = true;
 }
 if (0 && window.self != window.top) {
     fakeLocalStorage();
@@ -210,16 +221,12 @@ if (feed != null) {
         for (let i in split) {
             uuid.push(encodeURIComponent(split[i]));
         }
-        if (uuid[0].length > 18) {
-            console.log('redirecting the idiot, oui!');
-            let URL = 'https://www.adsbexchange.com/api/feeders/tar1090/?feed=' + uuid[0];
-            console.log(URL);
-            //window.history.pushState(URL, "Title", URL);
-            window.location.href = URL;
-        }
     } else {
         console.error('uuid / feed fail!');
     }
+}
+if (usp.has('uuid')) {
+    filterUuid = usp.get('uuid');
 }
 if (usp.has('tfrs')) {
     tfrs = true;
@@ -228,6 +235,10 @@ if (usp.has('tfrs')) {
 let uk_advisory = false;
 if (usp.has('uk_advisory')) {
     uk_advisory = true;
+}
+let atcStyle = false;
+if (usp.has('atcStyle')) {
+    atcStyle = true;
 }
 
 const customTiles = usp.get('customTiles');
@@ -330,7 +341,13 @@ function zuluTime(date) {
         + ":" + date.getUTCMinutes().toString().padStart(2,'0')
         + ":" + date.getUTCSeconds().toString().padStart(2,'0');
 }
-const TIMEZONE = new Date().toLocaleTimeString(undefined,{timeZoneName:'short'}).split(' ')[2];
+let TIMEZONE;
+if (navigator.language == 'en-US') {
+    TIMEZONE = new Date().toLocaleTimeString('en-US', {timeZoneName:'short'}).split(' ')[2];
+} else {
+    TIMEZONE = new Date().toLocaleTimeString('en-GB', {timeZoneName:'short'}).split(' ')[1];
+}
+TIMEZONE = TIMEZONE.replace("GMT", "UTC");
 function localTime(date) {
     return date.getHours().toString().padStart(2,'0')
         + ":" + date.getMinutes().toString().padStart(2,'0')
@@ -405,9 +422,9 @@ let test_chunk_defer;
 const hostname = window.location.hostname;
 if (uuid) {
     // don't need receiver / chunks json
-} else if (0 || (adsbexchange && (hostname.startsWith('globe.') || hostname.startsWith('globe-')))) {
-    console.log("Using adsbexchange fast-path load!");
-    let data = {"zstd":true,"reapi":true,"refresh":1600,"history":1,"dbServer":true,"binCraft":true,"globeIndexGrid":3,"globeIndexSpecialTiles":[],"version":"adsbexchange backend"};
+} else if (aggregator) {
+    console.log("Using aggregator fast-path load!");
+    let data = {"zstd":true,"reapi":true,"refresh":1000,"history":1,"dbServer":true,"binCraft":true,"globeIndexGrid":3,"globeIndexSpecialTiles":[],"version":"aggregator backend"};
     get_receiver_defer = jQuery.Deferred().resolve(data);
     test_chunk_defer = jQuery.Deferred().reject();
 } else {
@@ -440,15 +457,15 @@ if (uuid) {
 
 let heatmapLoadingState = {};
 function loadHeatChunk() {
-    if (heatmapLoadingState.index > heatChunks.length) {
+    if (heatmapLoadingState.index >= heatChunks.length) {
         heatmapDefer.resolve();
         return; // done, stop recursing
     }
 
-
     let time = new Date(heatmapLoadingState.start + heatmapLoadingState.index * heatmapLoadingState.interval);
     let sDate = sDateString(time);
     let index = 2 * time.getUTCHours() + Math.floor(time.getUTCMinutes() / 30);
+
 
     let base = "globe_history/";
 
@@ -460,33 +477,46 @@ function loadHeatChunk() {
         num: heatmapLoadingState.index,
         xhr: arraybufferRequest,
     });
+    heatmapLoadingState.index++;
+
+    const sliceEnd = new Date(time.getTime() + (30 * 60 - 1) * 1000);
+    console.log(zDateString(time) + ' ' + zuluTime(time) + ' - ' + zuluTime(sliceEnd) + ' ' + URL);
+
     {req.done(function (responseData) {
+        heatmapLoadingState.completed++;
+        jQuery("#loader_progress").attr('value', heatmapLoadingState.completed);
         heatChunks[this.num] = responseData;
         loadHeatChunk();
     });}
     {req.fail(function(jqxhr, status, error) {
         loadHeatChunk();
     });}
-    heatmapLoadingState.index++;
 }
 
 if (!heatmap) {
     heatmapDefer.resolve();
 } else {
+    // round heatmap end to half hour
+    heatmap.end = Math.floor(heatmap.end / (1800 * 1000)) * (1800 * 1000);
     let end = heatmap.end;
     let start = end - heatmap.duration * 3600 * 1000; // timestamp in ms
     let interval = 1800 * 1000;
     let numChunks = Math.round((end - start) / interval);
-    console.log('numChunks: ' + numChunks + ' heatDuration: ' + heatmap.duration + ' heatEnd: ' + new Date(heatmap.end));
+    console.log('numChunks: ' + numChunks + ' heatDuration: ' + heatmap.duration + ' heatEnd: ' + new Date(heatmap.end) + ' / ' + new Date(heatmap.end).toUTCString());
     heatChunks = Array(numChunks).fill(null);
     heatPoints = Array(numChunks).fill(null);
     // load chunks sequentially via recursion:
     heatmapLoadingState.index = 0;
     heatmapLoadingState.interval = interval;
     heatmapLoadingState.start = start;
+
+    heatmapLoadingState.completed = 0;
+    jQuery("#loader_progress").attr('value', heatmapLoadingState.completed);
+    jQuery("#loader_progress").attr('max', numChunks);
+
     // 2 async chains of heat chunk loading:
     loadHeatChunk();
-    loadHeatChunk();
+    setTimeout(loadHeatChunk, 500);
 }
 
 if (uuid != null) {
@@ -523,7 +553,15 @@ if (uuid != null) {
         }
         dbServer = (data.dbServer) ? true : false;
 
-        if (heatmap || replay) {
+        haveTraces = Boolean(data.haveTraces || data.globeIndexGrid);
+
+        if (data.readsb) {
+            jQuery("#decoder_pre").text("decoder:");
+            jQuery("#decoder_link").text("readsb");
+            jQuery("#decoder_link").attr("href", "https://github.com/wiedehopf/readsb#readsb");
+        }
+
+        if (heatmap || replay || filterUuid) {
             if (replay && data.globeIndexGrid != null)
                 globeIndex = 1;
             HistoryChunks = false;
@@ -552,6 +590,9 @@ if (uuid != null) {
                 console.log("Chunks enabled!");
                 chunkNames = (pTracks ? data.chunks_all : data.chunks) || [];
                 nHistoryItems = chunkNames.length;
+                if (usp.has('showTrace')) {
+                    nHistoryItems = 0;
+                }
                 enable_uat = (data.enable_uat == "true");
                 enable_pf_data = (data.pf_data == "true");
                 if (enable_uat)
@@ -822,8 +863,11 @@ function add_kml_overlay(url, name, opacity) {
 function webAssemblyFail(e) {
     zstdDecode = null;
     zstd = false;
-    binCraft = false;
-    if (adsbexchange && !uuid) {
+    if (!reApi) {
+        binCraft = false;
+    }
+    // this enforcing should not be needed
+    if (0 && aggregator && !uuid) {
         inhibitFetch = true;
         reApi = false;
         jQuery("#generic_error_detail").text("Your browser is not supporting webassembly, this website does not work without webassembly.");

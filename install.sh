@@ -24,7 +24,7 @@ if [[ -n "$4" ]] && grep -qs -e 'tar1090' "$4/install.sh"; then git_source="$4";
 
 lighttpd=no
 nginx=no
-function useSystemd () { command -v systemd &>/dev/null; }
+function useSystemd () { command -v systemctl &>/dev/null; }
 
 gpath="$TAR1090_UPDATE_DIR"
 if [[ -z "$gpath" ]]; then gpath="$ipath"; fi
@@ -38,7 +38,7 @@ then
 fi
 
 # terminate with /
-command_package="git git/jq jq/"
+command_package="git git/jq jq/curl curl"
 packages=()
 
 while read -r -d '/' CMD PKG
@@ -223,6 +223,7 @@ if ! diff tar1090.sh "$ipath"/tar1090.sh &>/dev/null; then
             systemctl stop "$service" 2>/dev/null || true
         fi
     done < <(echo "$instances")
+    rm -f "$ipath"/tar1090.sh
     cp tar1090.sh "$ipath"
 fi
 
@@ -307,16 +308,27 @@ do
 
     # in case we have offlinemaps installed, modify config.js
     MAX_OFFLINE=""
+    MAX_OFFLINE_OFM=""
     for i in {0..15}; do
+        if [[ -d /usr/local/share/openfreemap_offline/mnt/tiles/$i ]]; then
+            MAX_OFFLINE_OFM=$i
+        fi
         if [[ -d /usr/local/share/osm_tiles_offline/$i ]]; then
             MAX_OFFLINE=$i
         fi
     done
     if [[ -n "$MAX_OFFLINE" ]]; then
-        if ! grep "$TMP/config.js" -e '^offlineMapDetail.*' -qs &>/dev/null; then
+        if ! grep "$TMP/config.js" -E -e '^offlineMapDetail\s*=.*' -qs; then
             echo "offlineMapDetail=$MAX_OFFLINE;" >> "$TMP/config.js"
         else
-            sed -i -e "s/^offlineMapDetail.*/offlineMapDetail=$MAX_OFFLINE;/" "$TMP/config.js"
+            sed -i -e "s/^offlineMapDetail\s*=.*/offlineMapDetail=$MAX_OFFLINE;/" "$TMP/config.js"
+        fi
+    fi
+    if [[ -n "$MAX_OFFLINE_OFM" ]]; then
+        if ! grep "$TMP/config.js" -E -e '^offlineMapDetailOFM\s*=.*' -qs; then
+            echo "offlineMapDetailOFM=$MAX_OFFLINE_OFM;" >> "$TMP/config.js"
+        else
+            sed -i -e "s/^offlineMapDetailOFM\s=.*/offlineMapDetailOFM=$MAX_OFFLINE_OFM;/" "$TMP/config.js"
         fi
     fi
 
@@ -327,7 +339,7 @@ do
     dir=$(pwd)
     cd "$TMP"
 
-    sed -i -e "s/tar1090 on github/tar1090 on github (${TAR_VERSION})/" index.html
+    sed -i -e 's/id="webinterface_version">/\0'"(${TAR_VERSION})/" index.html
 
     "$gpath/git/cachebust.sh" "$gpath/git/cachebust.list" "$TMP"
 
