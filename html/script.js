@@ -8,10 +8,10 @@
 g.planes        = {};
 g.planesOrdered = [];
 g.route_cache = [];
-g.route_cities = [];
-g.route_check_array = [];
+g.route_check_todo = {};
 g.route_check_in_flight = false;
-g.route_cache_timer = new Date().getTime() / 1000 + 1; // one second from now
+g.route_next_lookup = 0;
+g.route_last_lookup = 0;
 
 g.mapOrientation = mapOrientation;
 
@@ -60,7 +60,6 @@ let iconSize = 1;
 let debugTracks = false;
 let verboseUpdateTrack = false;
 let debugAll = false;
-let debugRoute = false;
 let trackLabels = false;
 let multiSelect = false;
 let uat_data = null;
@@ -2812,14 +2811,16 @@ function showHideButtons() {
 // Initalizes the map and starts up our timers to call various functions
 function initMap() {
 
-    CenterLon = Number(loStore['CenterLon']) || DefaultCenterLon;
-    CenterLat = Number(loStore['CenterLat']) || DefaultCenterLat;
+    CenterLon = Number(lopaStore['CenterLon']) || DefaultCenterLon;
+    CenterLat = Number(lopaStore['CenterLat']) || DefaultCenterLat;
     //console.log("initMap Centerlat: " + CenterLat);
-    g.zoomLvl = Number(loStore['zoomLvl']) || DefaultZoomLvl;
+    g.zoomLvl = Number(lopaStore['zoomLvl']) || DefaultZoomLvl;
     g.zoomLvlCache = g.zoomLvl;
 
+    // always hide this, it really only shows the number of positions saved
+    jQuery('#dump1090_total_history_td').hide();
+
     if (globeIndex && aggregator) {
-        jQuery('#dump1090_total_history_td').hide();
         jQuery('#dump1090_message_rate_td').hide();
     }
 
@@ -3640,7 +3641,7 @@ function refreshSelected() {
     if (useRouteAPI) {
         if (selected.routeString) {
             jQuery('#selected_route').updateText(selected.routeString);
-            jQuery('#selected_route').attr('title', g.route_cities[selected.name]);
+            jQuery('#selected_route').attr('title', selected.routeVerbose);
         } else {
             jQuery('#selected_route').updateText('n/a');
         }
@@ -4077,11 +4078,11 @@ function refreshFeatures() {
         text: 'Callsign' };
     if (routeApiUrl) {
         cols.route = {
-            sort: function () { sortBy('route', compareAlpha, function(x) { return x.routeString }); },
+            sort: function () { sortBy('route', compareAlpha, function(x) { return x.routeColumn }); },
             value: function(plane) {
                 if (!useRouteAPI) return '';
                 if (plane.routeString) {
-                    return '<span title="' + g.route_cities[plane.name] + '">' + plane.routeString + '</span>';
+                    return '<span title="' + plane.routeVerbose + '">' + plane.routeColumn + '</span>';
                 } else {
                     return '';
                 }
@@ -4790,9 +4791,9 @@ function resetMap() {
             CenterLat = DefaultCenterLat;
         }
         // Reset loStore values and map settings
-        loStore['CenterLat'] = CenterLat
-        loStore['CenterLon'] = CenterLon
-        //loStore['zoomLvl']   = g.zoomLvl = DefaultZoomLvl;
+        lopaStore['CenterLat'] = CenterLat
+        lopaStore['CenterLon'] = CenterLon
+        //lopaStore['zoomLvl']   = g.zoomLvl = DefaultZoomLvl;
 
         // Set and refresh
         //OLMap.getView().setZoom(g.zoomLvl);
@@ -5821,7 +5822,7 @@ function changeZoom(init) {
     if (!init && Math.abs(g.zoomLvl-g.zoomLvlCache) < 0.4)
         return;
 
-    loStore['zoomLvl'] = g.zoomLvl;
+    lopaStore['zoomLvl'] = g.zoomLvl;
     g.zoomLvlCache = g.zoomLvl;
 
     if (!init && showTrace)
@@ -5883,8 +5884,8 @@ function changeCenter(init) {
         return;
     }
 
-    loStore['CenterLon'] = CenterLon = center[0];
-    loStore['CenterLat'] = CenterLat = center[1];
+    lopaStore['CenterLon'] = CenterLon = center[0];
+    lopaStore['CenterLat'] = CenterLat = center[1];
 
     if (!init) {
         updateAddressBar();
@@ -5913,11 +5914,11 @@ function checkMovement() {
         return;
     }
 
-    let currentTime = new Date().getTime()/1000;
-    if (currentTime > g.route_cache_timer) {
+    let currentTime = Date.now()/1000;
+    if (currentTime > g.route_next_lookup && !g.route_check_in_flight) {
         // check if it's time to send a batch of request to the API server
-        g.route_cache_timer = currentTime + 1;
-        routeDoLookup(currentTime);
+        g.route_next_lookup = currentTime + 1;
+        routeDoLookup();
     }
 
     const zoom = OLMap.getView().getZoom();
@@ -6780,6 +6781,7 @@ function toggleShowTrace() {
         showTraceWasIsolation = onlySelected;
         toggleIsolation("on", "noRefresh");
         shiftTrace();
+        refreshFilter();
     } else {
         jQuery("#selected_showTrace_hide").show();
 
@@ -6933,7 +6935,11 @@ function shiftTrace(offset) {
 
     jQuery('#leg_sel').text('Loading ...');
     if (!traceDate || offset == "today") {
-        setTraceDate({ ts: new Date().getTime() });
+        if (replay) {
+            setTraceDate({ ts: replay.ts.getTime() });
+        } else {
+            setTraceDate({ ts: new Date().getTime() });
+        }
     } else if (offset) {
         setTraceDate({ ts: traceDate.getTime() + offset * 86400 * 1000 });
     }
@@ -7161,7 +7167,9 @@ function initSitePos() {
     if (initSitePosFirstRun) {
         initSitePosFirstRun = false;
         const sortBy = usp.get('sortBy');
-        if (sortBy) {
+        if (sortBy == "nosort" ) {
+            // no sorting
+        } else if (sortBy) {
             TAR.planeMan.ascending = true;
             TAR.planeMan.cols[sortBy].sort();
             if (usp.has('sortByReverse')) {
@@ -7453,7 +7461,7 @@ function getTrace(newPlane, hex, options) {
 
     // use non historic traces until 60 min after midnight
     let today = new Date();
-    let refDate = (replay ? replay.ts : traceDate) || today;
+    let refDate = ((replay && !showTrace) ? replay.ts : traceDate) || today;
 
     if ((showTrace || replay) && !(today.getTime() > refDate.getTime() && today.getTime() < refDate.getTime() + (24 * 3600 + 60 * 60) * 1000)) {
         URL1 = null;
