@@ -2391,7 +2391,9 @@ function webglAddLayer() {
         alt_baro: 25000, });
     let plane = g.planes[icao];
 
-    let spriteSrc = spritesDataURL ? spritesDataURL : 'images/sprites.png';
+    if (spritesDataURL) {
+        spriteSrc = spritesDataURL;
+    }
     //console.log(spriteSrc);
     try {
         let glStyle = {
