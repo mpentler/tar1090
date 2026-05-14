@@ -2674,7 +2674,7 @@ function ol_map_init() {
             storeRulerCoords(evtCoords);
         }
 
-        let feature = features.getClosestFeatureToCoordinate(evtCoords);
+        let feature = source.getClosestFeatureToCoordinate(evtCoords);
         if (feature) {
             let fPixel = evt.map.getPixelFromCoordinate(feature.getGeometry().getCoordinates());
             let a = fPixel[0] - evt.pixel[0];
@@ -9313,7 +9313,7 @@ function adjust_baro_alt(alt) {
 
 function globeRateUpdate() {
     if (aggregator) {
-        //dynGlobeRate = true;
+        dynGlobeRate = false;
         if (0) {
             const cookieExp = getCookie('asdf_id').split('_')[0];
             const ts = new Date().getTime();

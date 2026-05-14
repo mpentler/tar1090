@@ -323,10 +323,10 @@ function format_data_source(source) {
 			return "AIS";
 		case 'mode_ac':
 			return "Mode A/C";
-        case 'adsc':
-            return jaeroLabel;
-        case 'other':
-            return "Other";
+		case 'adsc':
+			return jaeroLabel;
+		case 'other':
+			return "Other";
 	}
 
 	return "Unknown";

@@ -22,7 +22,7 @@
 // degrees.
 
 // The google maps zoom level, 0 - 16, lower is further out
-DefaultZoomLvl   = 5;
+DefaultZoomLvl   = 7;
 
 // specify lat lon that the 'auto-select plane' feature will choose the closest plane to
 // autoselectCoords = [42, 21];
@@ -264,6 +264,7 @@ MapboxAPIKey = null;
 // imageConfigText = "";
 
 //flightawareLinks = false;
+shareBaseUrl = 'https://adsb.oarc.uk/';
 //shareBaseUrl = 'https://adsb.lol/';
 //shareBaseUrl = 'https://globe.adsb.fi/';
 //shareBaseUrl = 'https://globe.airplanes.live/';
@@ -334,8 +335,9 @@ HideCols = [
 // get flight route from routeApi service default setting (toggle via settings checkbox)
 useRouteAPI = true;
 // configure route display, possible values: iata, icao, city (can use multiple like this: iata+city)
-// routeDisplay = 'iata';
+routeDisplay = 'city';
 // which routeApi service to use
+routeApiUrl = "https://api.adsb.lol/api/0/routeset";
 // routeApiUrl = "https://adsb.im/api/0/routeset";
 // routeApiUrl = "https://api.adsb.lol/api/0/routeset";
 // routeApiUrl = ""; // to disable route API so it can't be enabled by a website visitor
@@ -438,8 +440,8 @@ tableColors = {
 //SiteLat     = 45.0;            // position of the marker
 //SiteLon     = 9.0;
 // Default center of the map if no Site location is set
-//DefaultCenterLat = 45.0;
-//DefaultCenterLon = 9.0;
+DefaultCenterLat = 53.89;
+DefaultCenterLon = -1.23;
 //
 
 // MergeNonIcao = false; // set to true to merge non icao hex with the icao hex (remove the ~)
