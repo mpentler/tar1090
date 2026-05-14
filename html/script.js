@@ -9165,7 +9165,11 @@ function setSelectedIcao() {
         let copy_link_text = (copiedIcao != null) ? "Copied" : ("Copy" + NBSP + "Link");
         let icao_link = "<span  class=identSmall><a class='link identSmall' target=\"_blank\" href=\"" + shareLink +
             "\" onclick=\"copyShareLink(); return false;\">" + copy_link_text + "</a></span>";
-        hex_html = hex_html + NBSP + NBSP + NBSP + icao_link;
+        let view_3d_link = `https://adsb.oarc.uk/3dview/?single&hex=${selected.icao}`;
+        let view_3d_html = "<span class=identSmall><a class='link view3dlink' target=\"_blank\" href=\"" + view_3d_link +
+            "\">" + "View Aircraft in 3D\!" + "</a></span>";
+
+        hex_html = hex_html + NBSP + NBSP + NBSP + icao_link + "<BR>" + view_3d_html;
     }
     jQuery('#selected_icao').html(hex_html);
 
